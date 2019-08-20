@@ -14,6 +14,7 @@ import argparse
 parser = argparse.ArgumentParser(description='train-file')
 
 parser.add_argument('data_dir', type = str, action="store", default="./flowers/")
+parser.add_argument('--category_names ', type = str, action="store",  dest="category_names", default="./cat_to_name.json")
 parser.add_argument('--arch', type = str, action="store", dest="arch", default='vgg16')
 parser.add_argument('--learning_rate',  action="store", dest="lr", default=0.03)
 parser.add_argument('--hidden_units',  action="store", dest="hidden_units", default=500)
@@ -24,6 +25,7 @@ parser.add_argument('--save_dir ',  action="store", dest="save_dir", default='./
 results = parser.parse_args()
 
 data_dir = results.data_dir
+category_names = results.category_names
 arch = results.arch
 lr = results.lr
 hidden_units = results.hidden_units 
@@ -66,7 +68,7 @@ validloaders = torch.utils.data.DataLoader(valid_datasets, batch_size=64, shuffl
 testloaders = torch.utils.data.DataLoader(test_datasets, batch_size=64, shuffle=True) 
 
 def label_map():
-    with open('cat_to_name.json', 'r') as f:
+    with open(category_names, 'r') as f:
         cat_to_name = json.load(f)
     return cat_to_name
 
