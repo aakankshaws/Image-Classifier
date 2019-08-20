@@ -14,16 +14,24 @@ import argparse
 parser = argparse.ArgumentParser(description='predict-file')
 
 parser.add_argument('input', type = str, action="store", default="flowers/test/99/image_07833.jpg")
+parser.add_argument('--category_names ', type = str, action="store",  dest="category_names", default="./cat_to_name.json")
 parser.add_argument('checkpoint', type = str, action="store", default="./checkpoint.pth")
 parser.add_argument('--top_k', dest='top_k', type = str, action="store", default=5)
+parser.add_argument('--gpu',  action="store", dest="gpu", default='gpu')
 
 results = parser.parse_args()
 
 image_path = results.input
+category_names = results.category_names
 checkpoint = results.checkpoint
 topk = results.top_k
+gpu = results.gpu
 
-with open('cat_to_name.json', 'r') as f:
+# Use GPU if it's available
+device = torch.device("cuda" if (torch.cuda.is_available() and gpu=='gpu') else "cpu")
+print("We are running on {}".format(device)) #print to see what device is running
+
+with open(category_names, 'r') as f:
     cat_to_name = json.load(f)
     
 def load_checkpoint(filepath):
@@ -65,7 +73,7 @@ def process_image(image):
     # TODO: Process a PIL image for use in a PyTorch model
     img = Image.open(image)
     img_adjust = transforms.Compose([
-        transforms.Resize(256),
+        transforms.Resize(size=[256,512]),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -82,14 +90,14 @@ def predict(image_path, model, topk):
     model_input = image_tensor.unsqueeze(0)
     probs = torch.exp(model.forward(model_input))
     
-    top_probs, top_labs = probs.topk(5)
+    top_probs, classes = probs.topk(5)
     top_probs = top_probs.detach().numpy().tolist()[0] 
-    top_labs = top_labs.detach().numpy().tolist()[0]
+    classes = classes.detach().numpy().tolist()[0]
     
     idx_to_class = {val: key for key, val in    
                                       model.class_to_idx.items()}
-    top_labels = [idx_to_class[lab] for lab in top_labs]
-    top_flowers = [cat_to_name[idx_to_class[lab]] for lab in top_labs]
+    top_labels = [idx_to_class[lab] for lab in classes]
+    top_flowers = [cat_to_name[idx_to_class[lab]] for lab in classes]
     return top_probs, top_labels, top_flowers
 
 top_probs, top_labels, top_flowers = predict(image_path, model, topk)
